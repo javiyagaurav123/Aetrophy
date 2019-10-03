@@ -1,0 +1,103 @@
+<?php if (!defined('BASEPATH')) exit('No direct script access allowed');
+
+class Contactus extends MY_Controller
+{    
+    function __construct(){
+        parent::__construct();
+        $this->load->model('contactus_model', '', TRUE);
+        $this->load->model('admin/addimages_model', '', TRUE);
+        $this->load-> helper('url');
+        $this->data['post'] = FALSE;
+        $this->data['base_url']         = $this->config->item('base_url');
+        $this->data['admin_url']        = $this->config->item('admin_url');
+        $this->data['admin_css']        = $this->config->item('base_css');
+        $this->data['admin_js']         = $this->config->item('base_js');
+        $this->data['admin_image']      = $this->config->item('base_image');
+        $this->data['base_path']        = $this->config->item('base_path');
+        $this->data['base_lib']         = $this->config->item('base_lib');
+        $add = $this->addimages_model->record();
+        $this->data['add']=$add;
+    }
+    
+    function index(){
+        $this->data['tpl_name']= "contactus.tpl";
+        $this->smarty->assign("data",$this->data);
+        $this->smarty->view('template.tpl');
+    }
+
+    function contactus(){
+        $data = $this->input->post('data');
+        if(!$data){
+            redirect($this->data['base_url'].'contactus');
+        }
+        $insertedId = $this->contactus_model->insert($data);
+        $msg = null;
+        if($insertedId){
+            $msg ="Mail sent.";
+        }
+        $this->sendmail($data);
+        $this->data['msg']= $msg;
+        $this->data['tpl_name']= "contactus.tpl";
+        $this->smarty->assign("data",$this->data);
+        $this->smarty->view('template.tpl');
+    }
+
+    function sendmail($data){
+        require 'vendor/autoload.php';
+        //Load composer's autoloader
+        require 'vendor/phpmailer/phpmailer/class.phpmailer.php';
+        $mail = new PHPMailer();
+
+        try {
+            $recipient=$data['support@aertrophy.com'];
+            $subject="test mail";
+            $subject ='This is a test';
+            $message="Full Name:{$data['fullName']}<br>
+                      Job Title : {$data['jobTitle']}<br>
+                      Firm: {$data['firm']} <br>
+                      Address: {$data['address']}<br>
+                      City:{$data['city']}<br>
+                      Zip:{$data['zip']}<br>
+                      Country:{$data['country']}<br>
+                      Telephone: {$data['telephone']}<br>     
+                      Email: {$data['email']}<br>
+                      comments:{$data['comments']}";
+
+            // Get full html:
+            $body = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+            <html xmlns="http://www.w3.org/1999/xhtml">
+            <head>
+                <meta http-equiv="Content-Type" content="text/html; charset=' . strtolower(config_item('charset')) . '" />
+                <title>' . html_escape($subject) . '</title>
+                <style type="text/css">
+                    body {
+                        font-family: Arial, Verdana, Helvetica, sans-serif;
+                        font-size: 16px;
+                    }
+                </style>
+            </head>
+            <body>
+            ' . $message . '
+            </body>
+            </html>';
+            $mail->isSMTP();                                      // Set mailer to use SMTP
+            $mail->Host = 'smtp.gmail.com';                   // Specify main and backup SMTP servers
+            $mail->SMTPAuth = true;                               // Enable SMTP authentication
+            $mail->Username = $this->config->item('email_uname');                  // SMTP username
+            $mail->Password = $this->config->item('email_pass');                           // SMTP                           // SMTP password
+            $mail->SMTPSecure = 'tls';                            // Enable TLS encryption, `ssl` also accepted
+            $mail->Port = 587;                                    // TCP port to connect to
+            //Recipients
+            $mail->setFrom('test@gmail.com', '');
+            $mail->addAddress($recipient, '');     // Add a recipient
+            //Content
+            $mail->isHTML(true);                                  // Set email format to HTML
+            $mail->Subject = $subject;
+            $mail->Body    = $body;//'Body text goes here';
+            $mail->send();
+            // echo 'Message has been sent';
+        } catch (Exception $e) {
+            
+        }
+    }
+}
